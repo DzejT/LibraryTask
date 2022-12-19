@@ -12,7 +12,7 @@
 // #define LOG_PATH "/var/log/log.db"
 
 
-void insert_into_log(sqlite3 *db, char *text, char *status, int program){
+int insert_into_log(sqlite3 *db, char *text, char *status, int program){
     char sql[150];
     char *err_msg = 0;
 
@@ -35,13 +35,13 @@ void insert_into_log(sqlite3 *db, char *text, char *status, int program){
         sqlite3_free(err_msg);        
         sqlite3_close(db);
 
-        exit(1);
-        
+        return 1;         
     }
+    return 0;
 
 }
 
-void print_log(sqlite3 *db, char *status, int programID){
+int print_log(sqlite3 *db, char *status, int programID){
     char sql[256] = "SELECT rowid, * FROM log";
     int index = 0;
     char temp[256];
@@ -65,11 +65,11 @@ void print_log(sqlite3 *db, char *status, int programID){
 
     // printf("%s", sql);
 
-    sql_request(db, sql);
+    return sql_request(db, sql);
 }
 
 
-void sql_request(sqlite3 *db, char *sql){
+static int sql_request(sqlite3 *db, char *sql){
     char *err_msg = 0;
     int rc = sqlite3_exec(db, sql, callback, 0, &err_msg);
     
@@ -80,13 +80,15 @@ void sql_request(sqlite3 *db, char *sql){
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
-        exit(1);
+        return 1;
         
     }
+
+    return 0;
 }
 
 
-int callback(void *NotUsed, int argc, char **argv, char **azColName) {
+static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
         
     for (int i = 0; i < argc; i++) {
 
@@ -99,15 +101,15 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 }
 
 
-void open_log(sqlite3 **db, char *log_path){
+int open_log(sqlite3 **db, char *log_path){
     int rc = sqlite3_open(log_path, db);
 
     //if file not found create new file and try opening it again
-    if(rc == 14){
+    if(rc == SQLITE_CANTOPEN){
         int fd = creat(log_path, 0644);
         if(fd == -1){
             perror("creat");
-            return;
+            return 1;
         }    
         rc = sqlite3_open(log_path, db);
     }
@@ -117,15 +119,14 @@ void open_log(sqlite3 **db, char *log_path){
         fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(*db));
         sqlite3_close(*db);
 
-        exit(1);
+        return 1;
     }
 
-    create_table(db);
-    
+    return create_table(db);
 }
 
 
-void create_table(sqlite3 **db){
+static int create_table(sqlite3 **db){
     
     char *err_msg = 0;
 
@@ -140,11 +141,12 @@ void create_table(sqlite3 **db){
         sqlite3_free(err_msg);        
         sqlite3_close(*db);
         
-        exit(1);
-    } 
+        return 1;
+    }
+    return 0;
 }
 
-void clear_log(sqlite3 *db){
+int clear_log(sqlite3 *db){
     char *err_msg = 0;
 
     char* sql = "DELETE FROM log";
@@ -158,24 +160,18 @@ void clear_log(sqlite3 *db){
         sqlite3_free(err_msg);        
         sqlite3_close(db);
         
-        return;
-    } 
+        return 1;
+    }
+    return 0; 
 }
 
-void close_log(sqlite3 *db){
-    sqlite3_close(db);
+int close_log(sqlite3 *db){
+    int rc = sqlite3_close(db);
+    if (rc != SQLITE_OK ) {
+        fprintf(stderr, "Cannot close database: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return 1;
+    }
+    return rc;
 }
 
-void generate_insertion(sqlite3 *db, int program_nr){
-    char array_of_text[5][2][60] = {
-        {"error", "Out of disk space"},
-        {"warning", "possible memory leaks"},
-        {"update", "database is being updated"},
-        {"error", "reached maximum number of elements in database"},
-        {"warning", "database is close to reaching max capacity"}
-    };
-    srand(time(NULL));   
-    int r = rand()%5;
-
-    insert_into_log(db, array_of_text[r][1], array_of_text[r][0], program_nr);
-}
