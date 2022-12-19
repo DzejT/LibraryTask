@@ -8,14 +8,14 @@ $(SUBDIRS):
 	$(MAKE) -C $@
 
 install:
-	$(MAKE) -C Library/ install
+	$(MAKE) -C lib/ install
 
 uninstall:
-	$(MAKE) -C Library/ uninstall
+	$(MAKE) -C lib/ uninstall
 
 clean:
 	#$(MAKE) -C $(SUBDIRS) clean | bandžiau daryti taip, bet nesigavo 
-	$(MAKE) -C Library/ clean
+	$(MAKE) -C lib/ clean
 	$(MAKE) -C Program1/ clean 
 	$(MAKE) -C Program2/ clean 
 	$(MAKE) -C reader/ clean 

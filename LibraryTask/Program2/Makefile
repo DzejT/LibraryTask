@@ -1,5 +1,5 @@
-CFLAGS:=-Wall -Wextra
-LDFLAGS:= -llogger -lsqlite3
+CFLAGS:=-Wall -Wextra -I../lib
+LDFLAGS:= -L../lib -llogger
 SRCS:=$(wildcard *.c)
 OBJS:=$(SRCS:.c=.o)
 TARGET_EXEC:=Program2

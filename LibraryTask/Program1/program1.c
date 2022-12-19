@@ -1,10 +1,11 @@
-#include <sqlite3.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h> 
 #include <logger.h>
 #include <signal.h>
+#define LOG_PATH "/var/log/log.db"
+
 
 static int run_loop = 1;
 
@@ -25,7 +26,7 @@ int main(){
     sigaction(SIGQUIT, &sa, NULL);
 
 
-    open_log(&db);
+    open_log(&db, LOG_PATH);
 
     while(run_loop == 1){
         generate_insertion(db, 1);
