@@ -10,12 +10,14 @@
 static int run_loop = 1;
 
 static void signal_handler();
-void generate_insertion(sqlite3 *db, int program_nr);
+static int generate_insertion(sqlite3 *db);
+static void print_help();
+
 
 int main(){
 
     sqlite3 *db;
-    int response = 1;
+
     struct sigaction sa = {0};
     sa.sa_handler = signal_handler;
     sa.sa_flags = 0;
@@ -25,20 +27,45 @@ int main(){
     sigaction(SIGTSTP, &sa, NULL);
     sigaction(SIGQUIT, &sa, NULL);
 
-    response = open_log(&db, LOG_PATH);
-
-    if(response == 0){
-        while(run_loop == 1){
-            generate_insertion(db, 1);
-            sleep(15);
+    int rc;
+    open_log(&db, LOG_PATH);
+    
+    while(run_loop == 1){
+        if(db != NULL){
+            rc = generate_insertion(db);
+            printf("%d\n",rc);
+            if(rc == 1){
+                printf("if getting error: (SQL error: attempt to write a readonly database) try run program with sudo");
+                run_loop = 0;
+            }
+            printf("here\n");
+            sleep(5);
         }
-
-        close_log(db);
+        else{
+            fprintf(stderr, "Unable to open the log\n");
+            print_help();
+            char c [2] = {0};
+            fgets(c, sizeof(c), stdin);
+            switch (c[0])
+            {
+            case 'r':
+                printf("retrying to open log\n");
+                open_log(&db, LOG_PATH);
+                break;
+            case 'e':
+                printf("Exiting program\n");
+                run_loop = 0;
+                break;
+            default:
+                print_help();
+                fprintf(stderr, "Unknown command\n");
+                break;
+            }
+            
+        }
     }
-    else
-        fprintf(stderr, "Unable to open database");
     
-    
+    close_log(db);
 
     return 0;
 }
@@ -49,7 +76,7 @@ static void signal_handler()
     run_loop = 0;
 }
 
-void generate_insertion(sqlite3 *db, int program_nr){
+static int generate_insertion(sqlite3 *db){
     char array_of_text[5][2][60] = {
         {"error", "Out of disk space"},
         {"warning", "possible memory leaks"},
@@ -60,5 +87,12 @@ void generate_insertion(sqlite3 *db, int program_nr){
     srand(time(NULL));   
     int r = rand()%5;
 
-    insert_into_log(db, array_of_text[r][1], array_of_text[r][0], program_nr);
+    return insert_into_log(db, array_of_text[r][1], array_of_text[r][0], 1);
 }
+
+static void print_help(){
+    printf("e - exit program\n");
+    printf("r - retry to open the log\n");
+}
+
+
