@@ -13,9 +13,15 @@ void parse_argumets(sqlite3 *db, int argc, char **argv);
 
 
 int main(int argc, char **argv){
-    sqlite3 *db; 
+    sqlite3 *db = NULL; 
 
     open_log(&db, LOG_PATH);
+
+    if(db == NULL){
+        printf("Unable to open log\n");
+        close_log(db);
+        exit(1);
+    }
 
     parse_argumets(db, argc, argv);
 
